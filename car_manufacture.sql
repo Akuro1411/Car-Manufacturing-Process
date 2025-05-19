@@ -186,55 +186,49 @@ END;
 
 -- Parts functions and procedurs
 -- Updating stock
-create or replace procedure update_stock (
-    p_part_id in number,
-    p_quantity_change in number
-) as
-begin
-    update parts
-    set stock_quantity = stock_quantity + p_quantity_change
-    where part_id = p_part_id;
+CREATE OR REPLACE FUNCTION get_stock_value (
+    p_part_id IN NUMBER
+) RETURN NUMBER IS
+    v_value NUMBER;
+BEGIN
+	SELECT (SELECT stock_quantity FROM Parts WHERE part_id = p_part_id) *
+       (SELECT unit_price FROM Parts WHERE part_id = p_part_id)
+	INTO v_value
+	FROM dual;
 
-    if sql%rowcount = 0 then
-        dbms_output.put_line('no part found with given id.');
-    else
-        dbms_output.put_line('stock updated successfully.');
-    end if;
-end;
+    RETURN v_value;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+END;
 
-
-
-begin
-    update_stock(1, -50);  -- reduces stock of part_id 1 by 50
-end;
-
-
-
--- Get stock value
-create or replace function get_stock_value (
-    p_part_id in number
-) return number is
-    v_value number;
-begin
-    select stock_quantity * unit_price
-    into v_value
-    from parts
-    where part_id = p_part_id;
-
-    return v_value;
-exception
-    when no_data_found then
-        return null;
-end;
-
-
-declare
-    v_total_value number;
-begin
+DECLARE
+    v_total_value NUMBER;
+BEGIN
     v_total_value := get_stock_value(1);
-    dbms_output.put_line('total stock value: ' || v_total_value);
-end;
+    DBMS_OUTPUT.PUT_LINE('Total stock value: ' || v_total_value);
+END;
 
+
+-- Getting Supplier's total inventory
+CREATE OR REPLACE FUNCTION get_supplier_inventory_value (
+    p_supplier_id IN NUMBER
+) RETURN NUMBER IS
+    v_total_value NUMBER;
+BEGIN
+    SELECT (
+        SELECT SUM(stock_quantity * unit_price)
+        FROM Parts
+        WHERE supplier_id = p_supplier_id
+    )
+    INTO v_total_value
+    FROM dual;
+
+    RETURN NVL(v_total_value, 0);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 0;
+END;
 
 -- Engine functions and procedurs
 -- Function for learning engine utilization rate
