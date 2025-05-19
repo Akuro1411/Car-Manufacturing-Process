@@ -351,10 +351,69 @@ begin
 end;
 
 
--- Assembly lines
+-- Assembly lines functions and procedurs
+CREATE OR REPLACE PROCEDURE Assign_Employee_To_Line (
+    p_employee_id       IN NUMBER,
+    p_assembly_line_id  IN NUMBER
+) AS
+    v_count_line    NUMBER;
+    v_count_emp     NUMBER;
+BEGIN
+    SELECT COUNT(*) INTO v_count_line
+    FROM Assembly_Lines
+    WHERE assembly_line_id = p_assembly_line_id;
+
+    IF v_count_line = 0 THEN
+        RAISE_APPLICATION_ERROR(-20001, 'Assembly line not found.');
+    END IF;
+
+    SELECT COUNT(*) INTO v_count_emp
+    FROM Employees
+    WHERE employee_id = p_employee_id;
+
+    IF v_count_emp = 0 THEN
+        RAISE_APPLICATION_ERROR(-20002, 'Employee not found.');
+    END IF;
+
+    UPDATE Employees
+    SET assembly_line_id = p_assembly_line_id
+    WHERE employee_id = p_employee_id;
+
+    DBMS_OUTPUT.PUT_LINE('Employee assigned to assembly line successfully.');
+END;
 
 
+CREATE OR REPLACE FUNCTION Get_Daily_Car_Production_Capacity (
+    p_line_id IN NUMBER DEFAULT NULL
+) RETURN NUMBER IS
+    v_total_capacity NUMBER;
+BEGIN
+    IF p_line_id IS NOT NULL THEN
+        SELECT max_output_per_day INTO v_total_capacity
+        FROM Assembly_Lines
+        WHERE assembly_line_id = p_line_id;
+    ELSE
+        SELECT SUM(max_output_per_day) INTO v_total_capacity
+        FROM Assembly_Lines;
+    END IF;
 
+    RETURN v_total_capacity;
+END;
+
+
+CREATE OR REPLACE PROCEDURE Report_Line_Production_Status (
+    p_line_id IN NUMBER
+) AS
+BEGIN
+    FOR r IN (
+        SELECT status, COUNT(*) AS total
+        FROM Cars
+        WHERE assembly_line_id = p_line_id
+        GROUP BY status
+    ) LOOP
+        DBMS_OUTPUT.PUT_LINE('Status: ' || r.status || ' - Count: ' || r.total);
+    END LOOP;
+END;
 
 
 
