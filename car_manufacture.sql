@@ -119,3 +119,315 @@ INSERT INTO Cars (model_name, production_year, engine_id, assembly_line_id, stat
 ('HybridDrive H1', 2024, 5, 5, 'Completed'),
 ('DieselMax D3', 2022, 3, 6, 'Completed'),
 ('MiniDrive I3', 2024, 7, 7, 'In Production');
+
+-- Suppliers functions and procedures
+
+-- Procedure: Add a New Supplier
+CREATE OR REPLACE PROCEDURE add_supplier_with_validation (
+    p_supplier_name   IN VARCHAR2,
+    p_contact_person  IN VARCHAR2,
+    p_email           IN VARCHAR2,
+    p_location        IN VARCHAR2
+) AS
+BEGIN
+    IF INSTR(p_email, '@') = 0 OR INSTR(p_email, '.') = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('Invalid email format: ' || p_email);
+        RETURN;
+    END IF;
+
+    INSERT INTO Suppliers (supplier_name, contact_person, email, location)
+    VALUES (p_supplier_name, p_contact_person, p_email, p_location);
+
+    DBMS_OUTPUT.PUT_LINE('Supplier "' || p_supplier_name || '" added successfully.');
+END;
+
+-- Procedure: If Supplier Doesn't Supply Any Parts, Delete Them
+CREATE OR REPLACE PROCEDURE delete_supplier_if_unused (
+    p_supplier_id IN NUMBER
+) AS
+    v_count NUMBER;
+BEGIN
+    v_count := get_part_count_for_supplier(p_supplier_id);
+
+    IF v_count = 0 THEN
+        DELETE FROM Suppliers WHERE supplier_id = p_supplier_id;
+        DBMS_OUTPUT.PUT_LINE('Supplier ' || p_supplier_id || ' deleted (no parts supplied).');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Supplier ' || p_supplier_id || ' supplies ' || v_count || ' parts. Not deleted.');
+    END IF;
+END;
+
+
+
+-- Function: Get Total Value of Parts Supplied by a Supplier
+CREATE OR REPLACE FUNCTION get_supplier_inventory_value (
+    p_supplier_id IN NUMBER
+) RETURN NUMBER IS
+    v_total_value NUMBER;
+BEGIN
+    SELECT SUM(stock_quantity * unit_price)
+    INTO v_total_value
+    FROM Parts
+    WHERE supplier_id = p_supplier_id;
+
+    RETURN NVL(v_total_value, 0);
+END;
+select supplier_id, GET_SUPPLIER_INVENTORY_VALUE(supplier_id) from suppliers;
+
+
+-- Parts functions and procedurs
+--  Updating stock
+CREATE OR REPLACE PROCEDURE update_stock (
+    p_part_id IN NUMBER,
+    p_quantity_change IN NUMBER
+) AS
+BEGIN
+    UPDATE Parts
+    SET stock_quantity = stock_quantity + p_quantity_change
+    WHERE part_id = p_part_id;
+
+    IF SQL%ROWCOUNT = 0 THEN
+        DBMS_OUTPUT.PUT_LINE('No part found with given ID.');
+    ELSE
+        DBMS_OUTPUT.PUT_LINE('Stock updated successfully.');
+    END IF;
+END;
+
+
+
+BEGIN
+    update_stock(1, -50);  -- Reduces stock of part_id 1 by 50
+END;
+
+
+
+-- Get stock value
+CREATE OR REPLACE FUNCTION get_stock_value (
+    p_part_id IN NUMBER
+) RETURN NUMBER IS
+    v_value NUMBER;
+BEGIN
+    SELECT stock_quantity * unit_price
+    INTO v_value
+    FROM Parts
+    WHERE part_id = p_part_id;
+
+    RETURN v_value;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+END;
+
+
+DECLARE
+    v_total_value NUMBER;
+BEGIN
+    v_total_value := get_stock_value(1);
+    DBMS_OUTPUT.PUT_LINE('Total stock value: ' || v_total_value);
+END;
+
+
+-- Engine functions and procedurs
+-- Function for learning engine utilization rate
+CREATE OR REPLACE FUNCTION get_engine_type_utilization_rate(
+    p_engine_type IN VARCHAR2,
+    p_year_filter IN NUMBER DEFAULT NULL
+)
+RETURN NUMBER
+IS
+    v_total_cars     NUMBER := 0;
+    v_type_uses      NUMBER := 0;
+BEGIN
+
+    IF p_year_filter IS NOT NULL THEN
+
+        SELECT COUNT(*) 
+          INTO v_total_cars
+          FROM Cars
+         WHERE engine_id IS NOT NULL
+           AND production_year = p_year_filter;
+
+
+        SELECT COUNT(*) 
+          INTO v_type_uses
+          FROM Cars c
+          JOIN Engine e 
+            ON c.engine_id = e.engine_id
+         WHERE LOWER(e.engine_type) = LOWER(p_engine_type)
+           AND c.production_year = p_year_filter;
+    ELSE
+
+        SELECT COUNT(*) 
+          INTO v_total_cars
+          FROM Cars
+         WHERE engine_id IS NOT NULL;
+
+        SELECT COUNT(*) 
+          INTO v_type_uses
+          FROM Cars c
+          JOIN Engine e 
+            ON c.engine_id = e.engine_id
+         WHERE LOWER(e.engine_type) = LOWER(p_engine_type);
+    END IF;
+
+    IF v_total_cars = 0 THEN
+        RETURN 0;
+    END IF;
+
+    RETURN ROUND((v_type_uses / v_total_cars) * 100, 2);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 0;
+    WHEN OTHERS THEN
+        RETURN NULL;
+END;
+
+
+SELECT  c.car_id, c.model_name, e.engine_type, get_engine_type_utilization_rate(e.engine_type) AS type_usage_pct
+FROM Cars c JOIN Engine e ON c.engine_id = e.engine_id;
+
+
+-- Learning average cost of cars based on their fuel type
+CREATE OR REPLACE FUNCTION get_average_cost_by_fuel_type(
+    p_fuel_type engine.fuel_type%type
+)
+RETURN NUMBER
+IS
+    v_avg_cost NUMBER;
+BEGIN
+    SELECT AVG(production_cost)
+    INTO v_avg_cost
+    FROM Engine
+    WHERE LOWER(fuel_type) = LOWER(p_fuel_type);
+
+    RETURN ROUND(v_avg_cost, 2);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+END;
+
+select GET_AVERAGE_COST_BY_FUEL_TYPE('Diesel') from dual;
+
+
+-- Procedure for reporting engine usage
+CREATE OR REPLACE PROCEDURE report_engine_usage
+IS
+    CURSOR cur_engine_usage IS
+        SELECT 
+            e.engine_id,
+            e.engine_type,
+            e.production_cost,
+            NVL(COUNT(c.car_id), 0) AS usage_count
+        FROM Engine e
+        LEFT JOIN Cars c
+            ON e.engine_id = c.engine_id
+        GROUP BY 
+            e.engine_id, 
+            e.engine_type, 
+            e.production_cost
+        ORDER BY usage_count DESC;
+BEGIN
+    FOR rec IN cur_engine_usage LOOP
+        DBMS_OUTPUT.PUT_LINE(
+            'Engine ID: ' || rec.engine_id ||
+            ' | Type: ' || rec.engine_type ||
+            ' | Cost: ' || TO_CHAR(rec.production_cost) ||
+            ' | Cars Used: ' || rec.usage_count
+        );
+    END LOOP;
+END;
+
+BEGIN
+    report_engine_usage;
+END;
+
+
+-- Assembly lines
+
+
+
+
+
+
+-- Employees functions and procedurs
+CREATE OR REPLACE PROCEDURE add_employee(
+    p_name IN VARCHAR2,
+    p_position IN VARCHAR2,
+    p_assembly_line_id IN NUMBER,
+    p_hire_date IN DATE,
+    p_salary IN NUMBER
+) AS
+BEGIN
+    INSERT INTO Employees (name, position, assembly_line_id, hire_date, salary)
+    VALUES (p_name, p_position, p_assembly_line_id, p_hire_date, p_salary);
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('Employee added successfully.');
+EXCEPTION
+    WHEN OTHERS THEN
+        ROLLBACK;
+        DBMS_OUTPUT.PUT_LINE('Error adding employee: ' || SQLERRM);
+END add_employee;
+/
+
+
+CREATE OR REPLACE FUNCTION get_avg_salary_by_position(
+    p_position IN VARCHAR2
+) RETURN NUMBER AS
+    v_avg_salary NUMBER;
+BEGIN
+    SELECT AVG(salary) INTO v_avg_salary
+    FROM Employees
+    WHERE position = p_position;
+    
+    RETURN NVL(v_avg_salary, 0);
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 0;
+END get_avg_salary_by_position;
+/
+
+
+CREATE OR REPLACE FUNCTION get_highest_paid_employee(
+    p_position IN VARCHAR2
+) RETURN VARCHAR2 AS
+    v_employee_name VARCHAR2(100);
+BEGIN
+    SELECT name INTO v_employee_name
+    FROM Employees
+    WHERE position = p_position
+    AND salary = (SELECT MAX(salary) FROM Employees WHERE position = p_position)
+    AND ROWNUM = 1;
+    
+    RETURN v_employee_name;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN 'No employees found for position: ' || p_position;
+END get_highest_paid_employee;
+/
+
+select GET_HIGHEST_PAID_EMPLOYEE('Engineer') from dual;
+
+
+-- Cars functions and procedurs
+CREATE OR REPLACE FUNCTION CalculateCarAge(p_car_id NUMBER)
+RETURN NUMBER
+AS
+    v_year NUMBER;
+BEGIN
+    SELECT production_year INTO v_year FROM Cars WHERE car_id = p_car_id;
+    RETURN EXTRACT(YEAR FROM SYSDATE) - v_year;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        RETURN NULL;
+END;
+
+
+CREATE OR REPLACE PROCEDURE UpdateCarStatus(p_car_id NUMBER, p_new_status VARCHAR2)
+AS
+BEGIN
+    UPDATE Cars
+    SET status = p_new_status
+    WHERE car_id = p_car_id;
+    
+    COMMIT;
+END;
