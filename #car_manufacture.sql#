@@ -122,67 +122,24 @@ insert into cars (model_name, production_year, engine_id, assembly_line_id, stat
 
 -- Suppliers functions and procedures
 
--- Procedure: Add a New Supplier
-CREATE OR REPLACE PROCEDURE add_supplier_with_validation (
-    p_supplier_name   IN VARCHAR2,
-    p_contact_person  IN VARCHAR2,
-    p_email           IN VARCHAR2,
-    p_location        IN VARCHAR2
-) AS
-BEGIN
-    IF INSTR(p_email, '@') = 0 OR INSTR(p_email, '.') = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('Invalid email format: ' || p_email);
-        RETURN;
-    END IF;
+-- Procedure: add a new supplier
+create or replace procedure add_supplier_with_validation (
+    p_supplier_name   in varchar2,
+    p_contact_person  in varchar2,
+    p_email           in varchar2,
+    p_location        in varchar2
+) as
+begin
+    if instr(p_email, '@') = 0 or instr(p_email, '.') = 0 then
+        dbms_output.put_line('invalid email format: ' || p_email);
+        return;
+    end if;
 
-    INSERT INTO Suppliers (supplier_name, contact_person, email, location)
-    VALUES (p_supplier_name, p_contact_person, p_email, p_location);
+    insert into suppliers (supplier_name, contact_person, email, location)
+    values (p_supplier_name, p_contact_person, p_email, p_location);
 
-    DBMS_OUTPUT.PUT_LINE('Supplier "' || p_supplier_name || '" added successfully.');
-END;
+    dbms_output.put_line('supplier "' || p_supplier_name || '" added succe
 
--- Function: Counting How Many Parts a Supplier Provides
-CREATE OR REPLACE FUNCTION get_part_count_for_supplier (
-    p_supplier_id IN NUMBER
-) RETURN NUMBER IS
-    v_count NUMBER;
-BEGIN
-    SELECT COUNT(*) INTO v_count
-    FROM Parts
-    WHERE supplier_id = p_supplier_id;
-
-    RETURN v_count;
-END;
-
--- Procedure: If Supplier Doesn't Supply Any Parts, Delete Them
-CREATE OR REPLACE PROCEDURE delete_supplier_if_unused (
-    p_supplier_id IN NUMBER
-) AS
-    v_count NUMBER;
-BEGIN
-    v_count := get_part_count_for_supplier(p_supplier_id);
-
-    IF v_count = 0 THEN
-        DELETE FROM Suppliers WHERE supplier_id = p_supplier_id;
-        DBMS_OUTPUT.PUT_LINE('Supplier ' || p_supplier_id || ' deleted (no parts supplied).');
-    ELSE
-        DBMS_OUTPUT.PUT_LINE('Supplier ' || p_supplier_id || ' supplies ' || v_count || ' parts. Not deleted.');
-    END IF;
-END;
-
--- Function: Get Total Value of Parts Supplied by a Supplier
-CREATE OR REPLACE FUNCTION get_supplier_inventory_value (
-    p_supplier_id IN NUMBER
-) RETURN NUMBER IS
-    v_total_value NUMBER;
-BEGIN
-    SELECT SUM(stock_quantity * unit_price)
-    INTO v_total_value
-    FROM Parts
-    WHERE supplier_id = p_supplier_id;
-
-    RETURN NVL(v_total_value, 0);
-END;
 
 -- Parts functions and procedurs
 -- Updating stock
