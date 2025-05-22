@@ -200,6 +200,22 @@ end;
 
 -- Parts functions and procedurs
 
+create or replace function get_supplier_inventory_value (
+    p_supplier_id in number
+) return number is
+    v_total_value number;
+begin
+    select sum(stock_quantity * unit_price)
+    into v_total_value
+    from parts
+    where supplier_id = p_supplier_id;
+
+    return nvl(v_total_value, 0);
+exception
+    when no_data_found then
+      return 0;
+end;
+
 -- Updating stock
 create or replace procedure update_stock (
     p_part_id in number,
