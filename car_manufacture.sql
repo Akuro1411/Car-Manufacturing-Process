@@ -120,86 +120,86 @@ insert into cars (model_name, production_year, engine_id, assembly_line_id, stat
 ('dieselmax d3', 2022, 3, 6, 'completed'),
 ('minidrive i3', 2024, 7, 7, 'in production');
 
--- Suppliers functions and procedures
+-- suppliers functions and procedures
 
--- Adding a New Supplier
-CREATE OR REPLACE PROCEDURE add_supplier_with_validation (
-    p_supplier_name   IN VARCHAR2,
-    p_contact_person  IN VARCHAR2,
-    p_email           IN VARCHAR2,
-    p_location        IN VARCHAR2
-) AS
-BEGIN
-    IF INSTR(p_email, '@') = 0 OR INSTR(p_email, '.') = 0 THEN
-        DBMS_OUTPUT.PUT_LINE('Invalid email format: ' || p_email);
-        RETURN;
-    END IF;
+-- adding a new supplier
+create or replace procedure add_supplier_with_validation (
+    p_supplier_name   in varchar2,
+    p_contact_person  in varchar2,
+    p_email           in varchar2,
+    p_location        in varchar2
+) as
+begin
+    if instr(p_email, '@') = 0 or instr(p_email, '.') = 0 then
+        dbms_output.put_line('invalid email format: ' || p_email);
+        return;
+    end if;
 
-    INSERT INTO Suppliers (supplier_name, contact_person, email, location)
-    VALUES (p_supplier_name, p_contact_person, p_email, p_location);
+    insert into suppliers (supplier_name, contact_person, email, location)
+    values (p_supplier_name, p_contact_person, p_email, p_location);
 
-    DBMS_OUTPUT.PUT_LINE('Supplier "' || p_supplier_name || '" added successfully.');
-END;
+    dbms_output.put_line('supplier "' || p_supplier_name || '" added successfully.');
+end;
 
--- Getting Supplier Summary
-CREATE OR REPLACE PROCEDURE Get_Supplier_Summary(p_supplier_id IN NUMBER) IS
-    v_supplier_name Suppliers.supplier_name%TYPE;
-    v_total_parts   NUMBER;
-    v_total_value   NUMBER;
-BEGIN
-    SELECT supplier_name INTO v_supplier_name
-    FROM Suppliers
-    WHERE supplier_id = p_supplier_id;
+-- getting supplier summary
+create or replace procedure get_supplier_summary(p_supplier_id in number) is
+    v_supplier_name suppliers.supplier_name%type;
+    v_total_parts   number;
+    v_total_value   number;
+begin
+    select supplier_name into v_supplier_name
+    from suppliers
+    where supplier_id = p_supplier_id;
 
-    SELECT 
-        (SELECT COUNT(*) FROM Parts WHERE supplier_id = p_supplier_id),
-        (SELECT NVL(SUM(stock_quantity * unit_price), 0) FROM Parts WHERE supplier_id = p_supplier_id)
-    INTO v_total_parts, v_total_value
-    FROM dual;
+    select 
+        (select count(*) from parts where supplier_id = p_supplier_id),
+        (select nvl(sum(stock_quantity * unit_price), 0) from parts where supplier_id = p_supplier_id)
+    into v_total_parts, v_total_value
+    from dual;
 
-    DBMS_OUTPUT.PUT_LINE('Supplier: ' || v_supplier_name);
-    DBMS_OUTPUT.PUT_LINE('Total Parts Supplied: ' || v_total_parts);
-    DBMS_OUTPUT.PUT_LINE('Total Stock Value: $' || v_total_value);
-END;
+    dbms_output.put_line('supplier: ' || v_supplier_name);
+    dbms_output.put_line('total parts supplied: ' || v_total_parts);
+    dbms_output.put_line('total stock value: $' || v_total_value);
+end;
 
--- Getting Supplier's Average Price
-CREATE OR REPLACE FUNCTION Get_Supplier_Average_Price(p_supplier_id IN NUMBER)
-RETURN NUMBER IS
-    v_avg_price NUMBER := 0;
-BEGIN
-    SELECT NVL(AVG(unit_price), 0)
-    INTO v_avg_price
-    FROM Parts
-    WHERE supplier_id = p_supplier_id;
+-- getting supplier's average price
+create or replace function get_supplier_average_price(p_supplier_id in number)
+return number is
+    v_avg_price number := 0;
+begin
+    select nvl(avg(unit_price), 0)
+    into v_avg_price
+    from parts
+    where supplier_id = p_supplier_id;
 
-    RETURN v_avg_price;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RETURN 0;
-END;
+    return v_avg_price;
+exception
+    when no_data_found then
+        return 0;
+end;
 
--- Listing All Suppliers and Their Contact Info
-CREATE OR REPLACE PROCEDURE List_Suppliers_Info IS
-    CURSOR c_suppliers IS
-        SELECT supplier_name, contact_person, email, location
-        FROM Suppliers;
+-- listing all suppliers and their contact info
+create or replace procedure list_suppliers_info is
+    cursor c_suppliers is
+        select supplier_name, contact_person, email, location
+        from suppliers;
 
-    v_supplier c_suppliers%ROWTYPE;
-BEGIN
-    OPEN c_suppliers;
-    LOOP
-        FETCH c_suppliers INTO v_supplier;
-        EXIT WHEN c_suppliers%NOTFOUND;
-        DBMS_OUTPUT.PUT_LINE('Name: ' || v_supplier.supplier_name || 
-                             ', Contact: ' || v_supplier.contact_person ||
-                             ', Email: ' || v_supplier.email ||
-                             ', Location: ' || v_supplier.location);
-    END LOOP;
-    CLOSE c_suppliers;
-END;
+    v_supplier c_suppliers%rowtype;
+begin
+    open c_suppliers;
+    loop
+        fetch c_suppliers into v_supplier;
+        exit when c_suppliers%notfound;
+        dbms_output.put_line('name: ' || v_supplier.supplier_name || 
+                             ', contact: ' || v_supplier.contact_person ||
+                             ', email: ' || v_supplier.email ||
+                             ', location: ' || v_supplier.location);
+    end loop;
+    close c_suppliers;
+end;
 
--- Parts functions and procedurs
--- Updating stock
+-- parts functions and procedurs
+-- updating stock
 create or replace procedure update_stock (
     p_part_id in number,
     p_quantity_change in number
@@ -217,52 +217,52 @@ begin
 end;
 
 
--- Getting Supplier's total inventory
-CREATE OR REPLACE FUNCTION get_stock_value (
-    p_part_id IN NUMBER
-) RETURN NUMBER IS
-    v_value NUMBER;
-BEGIN
-	SELECT (SELECT stock_quantity FROM Parts WHERE part_id = p_part_id) *
-       (SELECT unit_price FROM Parts WHERE part_id = p_part_id)
-	INTO v_value
-	FROM dual;
+-- getting supplier's total inventory
+create or replace function get_stock_value (
+    p_part_id in number
+) return number is
+    v_value number;
+begin
+	select (select stock_quantity from parts where part_id = p_part_id) *
+       (select unit_price from parts where part_id = p_part_id)
+	into v_value
+	from dual;
 
-    RETURN v_value;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RETURN NULL;
-END;
+    return v_value;
+exception
+    when no_data_found then
+        return null;
+end;
 
-DECLARE
-    v_total_value NUMBER;
-BEGIN
+declare
+    v_total_value number;
+begin
     v_total_value := get_stock_value(1);
-    DBMS_OUTPUT.PUT_LINE('Total stock value: ' || v_total_value);
-END;
+    dbms_output.put_line('total stock value: ' || v_total_value);
+end;
 
--- Inventory value of supplier
-CREATE OR REPLACE FUNCTION get_supplier_inventory_value (
-    p_supplier_id IN NUMBER
-) RETURN NUMBER IS
-    v_total_value NUMBER;
-BEGIN
-    SELECT (
-        SELECT SUM(stock_quantity * unit_price)
-        FROM Parts
-        WHERE supplier_id = p_supplier_id
+-- inventory value of supplier
+create or replace function get_supplier_inventory_value (
+    p_supplier_id in number
+) return number is
+    v_total_value number;
+begin
+    select (
+        select sum(stock_quantity * unit_price)
+        from parts
+        where supplier_id = p_supplier_id
     )
-    INTO v_total_value
-    FROM dual;
+    into v_total_value
+    from dual;
 
-    RETURN NVL(v_total_value, 0);
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RETURN 0;
-END;
+    return nvl(v_total_value, 0);
+exception
+    when no_data_found then
+        return 0;
+end;
 
--- Engine functions and procedurs
--- Function for learning engine utilization rate
+-- engine functions and procedurs
+-- function for learning engine utilization rate
 create or replace function get_engine_type_utilization_rate(
     p_engine_type in varchar2,
     p_year_filter in number default null
@@ -321,7 +321,7 @@ select  c.car_id, c.model_name, e.engine_type, get_engine_type_utilization_rate(
 from cars c join engine e on c.engine_id = e.engine_id;
 
 
--- Learning average cost of cars based on their fuel type
+-- learning average cost of cars based on their fuel type
 create or replace function get_average_cost_by_fuel_type(
     p_fuel_type engine.fuel_type%type
 )
@@ -343,7 +343,7 @@ end;
 select get_average_cost_by_fuel_type('diesel') from dual;
 
 
--- Procedure for reporting engine usage
+-- procedure for reporting engine usage
 create or replace procedure report_engine_usage
 is
     cursor cur_engine_usage is
@@ -376,73 +376,73 @@ begin
 end;
 
 
--- Assembly lines functions and procedurs
-CREATE OR REPLACE PROCEDURE Assign_Employee_To_Line (
-    p_employee_id       IN NUMBER,
-    p_assembly_line_id  IN NUMBER
-) AS
-    v_count_line    NUMBER;
-    v_count_emp     NUMBER;
-BEGIN
-    SELECT COUNT(*) INTO v_count_line
-    FROM Assembly_Lines
-    WHERE assembly_line_id = p_assembly_line_id;
+-- assembly lines functions and procedurs
+create or replace procedure assign_employee_to_line (
+    p_employee_id       in number,
+    p_assembly_line_id  in number
+) as
+    v_count_line    number;
+    v_count_emp     number;
+begin
+    select count(*) into v_count_line
+    from assembly_lines
+    where assembly_line_id = p_assembly_line_id;
 
-    IF v_count_line = 0 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Assembly line not found.');
-    END IF;
+    if v_count_line = 0 then
+        raise_application_error(-20001, 'assembly line not found.');
+    end if;
 
-    SELECT COUNT(*) INTO v_count_emp
-    FROM Employees
-    WHERE employee_id = p_employee_id;
+    select count(*) into v_count_emp
+    from employees
+    where employee_id = p_employee_id;
 
-    IF v_count_emp = 0 THEN
-        RAISE_APPLICATION_ERROR(-20002, 'Employee not found.');
-    END IF;
+    if v_count_emp = 0 then
+        raise_application_error(-20002, 'employee not found.');
+    end if;
 
-    UPDATE Employees
-    SET assembly_line_id = p_assembly_line_id
-    WHERE employee_id = p_employee_id;
+    update employees
+    set assembly_line_id = p_assembly_line_id
+    where employee_id = p_employee_id;
 
-    DBMS_OUTPUT.PUT_LINE('Employee assigned to assembly line successfully.');
-END;
-
-
-CREATE OR REPLACE FUNCTION Get_Daily_Car_Production_Capacity (
-    p_line_id IN NUMBER DEFAULT NULL
-) RETURN NUMBER IS
-    v_total_capacity NUMBER;
-BEGIN
-    IF p_line_id IS NOT NULL THEN
-        SELECT max_output_per_day INTO v_total_capacity
-        FROM Assembly_Lines
-        WHERE assembly_line_id = p_line_id;
-    ELSE
-        SELECT SUM(max_output_per_day) INTO v_total_capacity
-        FROM Assembly_Lines;
-    END IF;
-
-    RETURN v_total_capacity;
-END;
+    dbms_output.put_line('employee assigned to assembly line successfully.');
+end;
 
 
-CREATE OR REPLACE PROCEDURE Report_Line_Production_Status (
-    p_line_id IN NUMBER
-) AS
-BEGIN
-    FOR r IN (
-        SELECT status, COUNT(*) AS total
-        FROM Cars
-        WHERE assembly_line_id = p_line_id
-        GROUP BY status
-    ) LOOP
-        DBMS_OUTPUT.PUT_LINE('Status: ' || r.status || ' - Count: ' || r.total);
-    END LOOP;
-END;
+create or replace function get_daily_car_production_capacity (
+    p_line_id in number default null
+) return number is
+    v_total_capacity number;
+begin
+    if p_line_id is not null then
+        select max_output_per_day into v_total_capacity
+        from assembly_lines
+        where assembly_line_id = p_line_id;
+    else
+        select sum(max_output_per_day) into v_total_capacity
+        from assembly_lines;
+    end if;
+
+    return v_total_capacity;
+end;
+
+
+create or replace procedure report_line_production_status (
+    p_line_id in number
+) as
+begin
+    for r in (
+        select status, count(*) as total
+        from cars
+        where assembly_line_id = p_line_id
+        group by status
+    ) loop
+        dbms_output.put_line('status: ' || r.status || ' - count: ' || r.total);
+    end loop;
+end;
 
 
 
--- Employees functions and procedurs
+-- employees functions and procedurs
 create or replace procedure add_employee(
     p_name in varchar2,
     p_position in varchar2,
@@ -480,88 +480,88 @@ end get_avg_salary_by_position;
 
 
 
-CREATE OR REPLACE FUNCTION get_highest_paid_employee(
-    p_position IN VARCHAR2
-) RETURN VARCHAR2 AS
-    v_employee_name VARCHAR2(100);
-BEGIN
-    SELECT name INTO v_employee_name
-    FROM Employees
-    WHERE position = p_position
-    AND salary = (
-        SELECT MAX(salary) 
-        FROM Employees 
-        WHERE position = p_position
+create or replace function get_highest_paid_employee(
+    p_position in varchar2
+) return varchar2 as
+    v_employee_name varchar2(100);
+begin
+    select name into v_employee_name
+    from employees
+    where position = p_position
+    and salary = (
+        select max(salary) 
+        from employees 
+        where position = p_position
     )
-    AND ROWNUM = 1;
+    and rownum = 1;
     
-    RETURN v_employee_name;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        RETURN 'No employees found for position: ' || p_position;
-END get_highest_paid_employee;
+    return v_employee_name;
+exception
+    when no_data_found then
+        return 'no employees found for position: ' || p_position;
+end get_highest_paid_employee;
 
 
 select get_highest_paid_employee('engineer') from dual;
 
 
--- Cars functions and procedurs
-CREATE OR REPLACE FUNCTION get_completed_car_count_by_year(p_year NUMBER)
-RETURN NUMBER IS
-    v_count NUMBER;
-BEGIN
-    SELECT COUNT(*) INTO v_count
-    FROM cars
-    WHERE production_year = p_year
-      AND status = 'completed';
+-- cars functions and procedurs
+create or replace function get_completed_car_count_by_year(p_year number)
+return number is
+    v_count number;
+begin
+    select count(*) into v_count
+    from cars
+    where production_year = p_year
+      and status = 'completed';
 
-    RETURN v_count;
-END;
+    return v_count;
+end;
 
 
-CREATE OR REPLACE FUNCTION get_latest_model_by_line(p_line_id NUMBER)
-RETURN VARCHAR2 IS
-    v_model_name VARCHAR2(100);
-BEGIN
-    SELECT model_name
-    INTO v_model_name
-    FROM cars
-    WHERE assembly_line_id = p_line_id
-      AND production_year = (
-          SELECT MAX(production_year)
-          FROM cars
-          WHERE assembly_line_id = p_line_id
+create or replace function get_latest_model_by_line(p_line_id number)
+return varchar2 is
+    v_model_name varchar2(100);
+begin
+    select model_name
+    into v_model_name
+    from cars
+    where assembly_line_id = p_line_id
+      and production_year = (
+          select max(production_year)
+          from cars
+          where assembly_line_id = p_line_id
       )
-    FETCH FIRST 1 ROWS ONLY;
+    fetch first 1 rows only;
 
-    RETURN v_model_name;
-END;
+    return v_model_name;
+end;
 
 
-CREATE OR REPLACE PROCEDURE updatecarstatus(
-    p_car_id      NUMBER,
-    p_new_status  VARCHAR2
-) AS
-    v_exists NUMBER;
-BEGIN
-    SELECT COUNT(*)
-    INTO v_exists
-    FROM cars
-    WHERE car_id = p_car_id;
+create or replace procedure updatecarstatus(
+    p_car_id      number,
+    p_new_status  varchar2
+) as
+    v_exists number;
+begin
+    select count(*)
+    into v_exists
+    from cars
+    where car_id = p_car_id;
 
-    IF v_exists = 0 THEN
-        RAISE_APPLICATION_ERROR(-20001, 'Car with ID ' || p_car_id || ' does not exist.');
-    END IF;
+    if v_exists = 0 then
+        raise_application_error(-20001, 'car with id ' || p_car_id || ' does not exist.');
+    end if;
 
-    UPDATE cars
-    SET status = p_new_status
-    WHERE car_id = p_car_id;
+    update cars
+    set status = p_new_status
+    where car_id = p_car_id;
 
-    COMMIT;
+    commit;
 
-    DBMS_OUTPUT.PUT_LINE('Car status updated successfully.');
-EXCEPTION
-    WHEN OTHERS THEN
-        ROLLBACK;
-        DBMS_OUTPUT.PUT_LINE('Error: ' || SQLERRM);
-END;
+    dbms_output.put_line('car status updated successfully.');
+exception
+    when others then
+        rollback;
+        dbms_output.put_line('error: ' || sqlerrm);
+end;
