@@ -443,6 +443,8 @@ end;
 
 
 -- employees functions and procedurs
+
+-- adding new employee without duplication
 create or replace procedure add_employee(
     p_name in varchar2,
     p_position in varchar2,
@@ -450,16 +452,26 @@ create or replace procedure add_employee(
     p_hire_date in date,
     p_salary in number
 ) as
+    v_count number;
 begin
-    insert into employees (name, position, assembly_line_id, hire_date, salary)
-    values (p_name, p_position, p_assembly_line_id, p_hire_date, p_salary);
-    commit;
-    dbms_output.put_line('employee added successfully.');
+    -- Check if the employee already exists (based on name and assembly_line_id)
+    select count(*) into v_count
+    from employees
+    where name = p_name
+      and assembly_line_id = p_assembly_line_id;
+
+    if v_count > 0 then
+        dbms_output.put_line('Employee already exists. No action taken.');
+    else
+        insert into employees (name, position, assembly_line_id, hire_date, salary)
+        values (p_name, p_position, p_assembly_line_id, p_hire_date, p_salary);
+        dbms_output.put_line('Employee added successfully.');
+    end if;
 exception
     when others then
         rollback;
-        dbms_output.put_line('error adding employee: ' || sqlerrm);
-end add_employee;
+        dbms_output.put_line('Error adding employee: ' || sqlerrm);
+end;
 
 
 
