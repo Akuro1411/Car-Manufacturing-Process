@@ -200,20 +200,28 @@ end;
 
 -- Parts functions and procedurs
 
-create or replace function get_supplier_inventory_value (
-    p_supplier_id in number
-) return number is
-    v_total_value number;
+-- Adds new part.
+create or replace procedure add_part_if_not_exists (
+    p_part_name     in varchar2,
+    p_supplier_id   in number,
+    p_stock_quantity in number,
+    p_unit_price    in number
+) as
+    v_count number;
 begin
-    select sum(stock_quantity * unit_price)
-    into v_total_value
+    select count(*)
+    into v_count
     from parts
-    where supplier_id = p_supplier_id;
+    where lower(part_name) = lower(p_part_name)
+      and supplier_id = p_supplier_id;
 
-    return nvl(v_total_value, 0);
-exception
-    when no_data_found then
-      return 0;
+    if v_count = 0 then
+        insert into parts (part_name, supplier_id, stock_quantity, unit_price)
+        values (p_part_name, p_supplier_id, p_stock_quantity, p_unit_price);
+        dbms_output.put_line('part inserted successfully.');
+    else
+        dbms_output.put_line('part already exists for this supplier.');
+    end if;
 end;
 
 -- Updating stock
