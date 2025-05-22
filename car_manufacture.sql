@@ -1,4 +1,4 @@
--- 1. suppliers
+-- 1. Suppliers
 create table suppliers (
     supplier_id      number generated always as identity primary key,
     supplier_name    varchar2(100) not null,
@@ -7,7 +7,7 @@ create table suppliers (
     location         varchar2(100)
 );
 
--- 2. parts
+-- 2. Parts
 create table parts (
     part_id       number generated always as identity primary key,
     part_name     varchar2(100) not null,
@@ -17,7 +17,7 @@ create table parts (
     constraint fk_parts_supplier foreign key (supplier_id) references suppliers(supplier_id)
 );
 
--- 3. engine
+-- 3. Engine
 create table engine (
     engine_id       number generated always as identity primary key,
     engine_type     varchar2(50) not null,
@@ -26,7 +26,7 @@ create table engine (
     production_cost number(10, 2)
 );
 
--- 4. assembly_lines
+-- 4. Assembly_lines
 create table assembly_lines (
     assembly_line_id     number generated always as identity primary key,
     line_name            varchar2(100) not null,
@@ -35,7 +35,7 @@ create table assembly_lines (
     max_output_per_day   number
 );
 
--- 5. employees
+-- 5. Employees
 create table employees (
     employee_id       number generated always as identity primary key,
     name              varchar2(100) not null,
@@ -46,7 +46,7 @@ create table employees (
     constraint fk_employee_line foreign key (assembly_line_id) references assembly_lines(assembly_line_id)
 );
 
--- 6. cars
+-- 6. Cars
 create table cars (
     car_id            number generated always as identity primary key,
     model_name        varchar2(100) not null,
@@ -60,7 +60,7 @@ create table cars (
 
 
 
--- suppliers
+-- Suppliers
 insert into suppliers (supplier_name, contact_person, email, location) values
 ('global motors ltd', 'ali karimov', 'ali.k@globalmotors.com', 'germany'),
 ('turbo supplies inc.', 'john reed', 'john.reed@turbo.com', 'usa'),
@@ -70,7 +70,7 @@ insert into suppliers (supplier_name, contact_person, email, location) values
 ('precision parts', 'ravi mehta', 'ravi@precision.in', 'india'),
 ('z-speed corp', 'chen wang', 'chen.w@zspeed.cn', 'china');
 
--- parts
+-- Parts
 insert into parts (part_name, supplier_id, stock_quantity, unit_price) values
 ('brake pad', 1, 500, 25.50),
 ('oil filter', 2, 300, 15.75),
@@ -80,7 +80,7 @@ insert into parts (part_name, supplier_id, stock_quantity, unit_price) values
 ('fuel pump', 6, 150, 55.30),
 ('radiator', 7, 90, 130.00);
 
--- engine
+-- Engine
 insert into engine (engine_type, horsepower, fuel_type, production_cost) values
 ('v6', 250, 'petrol', 4500.00),
 ('v8', 400, 'petrol', 6200.00),
@@ -90,7 +90,7 @@ insert into engine (engine_type, horsepower, fuel_type, production_cost) values
 ('v6 turbo', 300, 'petrol', 5200.00),
 ('i3', 130, 'diesel', 2500.00);
 
--- assembly_lines
+-- Assembly_lines
 insert into assembly_lines (line_name, location, shift, max_output_per_day) values
 ('line a', 'plant 1 - baku', 'day', 20),
 ('line b', 'plant 1 - baku', 'night', 18),
@@ -100,7 +100,7 @@ insert into assembly_lines (line_name, location, shift, max_output_per_day) valu
 ('line f', 'plant 3 - sumqayit', 'night', 15),
 ('line g', 'plant 4 - mingachevir', 'day', 30);
 
--- employees
+-- Employees
 insert into employees (name, position, assembly_line_id, hire_date, salary) values
 ('orkhan aliyev', 'technician', 1, date '2020-05-10', 1200.00),
 ('leyla mammadova', 'engineer', 2, date '2019-03-18', 2000.00),
@@ -110,7 +110,7 @@ insert into employees (name, position, assembly_line_id, hire_date, salary) valu
 ('nigar guliyeva', 'assembler', 6, date '2023-01-12', 1050.00),
 ('murad asgarov', 'technician', 7, date '2021-04-14', 1250.00);
 
--- cars
+-- Cars
 insert into cars (model_name, production_year, engine_id, assembly_line_id, status) values
 ('az-coupe 2023', 2023, 1, 1, 'completed'),
 ('az-suv x', 2023, 2, 2, 'in production'),
@@ -120,9 +120,9 @@ insert into cars (model_name, production_year, engine_id, assembly_line_id, stat
 ('dieselmax d3', 2022, 3, 6, 'completed'),
 ('minidrive i3', 2024, 7, 7, 'in production');
 
--- suppliers functions and procedures
+-- Suppliers functions and procedures
 
--- adding a new supplier
+-- Adding a new supplier
 create or replace procedure add_supplier_with_validation (
     p_supplier_name   in varchar2,
     p_contact_person  in varchar2,
@@ -141,7 +141,7 @@ begin
     dbms_output.put_line('supplier "' || p_supplier_name || '" added successfully.');
 end;
 
--- getting supplier summary
+-- Getting supplier summary
 create or replace procedure get_supplier_summary(p_supplier_id in number) is
     v_supplier_name suppliers.supplier_name%type;
     v_total_parts   number;
@@ -162,7 +162,7 @@ begin
     dbms_output.put_line('total stock value: $' || v_total_value);
 end;
 
--- getting supplier's average price
+-- Getting supplier's average price
 create or replace function get_supplier_average_price(p_supplier_id in number)
 return number is
     v_avg_price number := 0;
@@ -178,7 +178,7 @@ exception
         return 0;
 end;
 
--- listing all suppliers and their contact info
+-- Listing all suppliers and their contact info
 create or replace procedure list_suppliers_info is
     cursor c_suppliers is
         select supplier_name, contact_person, email, location
@@ -198,8 +198,9 @@ begin
     close c_suppliers;
 end;
 
--- parts functions and procedurs
--- updating stock
+-- Parts functions and procedurs
+
+-- Updating stock
 create or replace procedure update_stock (
     p_part_id in number,
     p_quantity_change in number
@@ -217,7 +218,7 @@ begin
 end;
 
 
--- getting supplier's total inventory
+-- Getting supplier's total inventory
 create or replace function get_stock_value (
     p_part_id in number
 ) return number is
@@ -241,19 +242,16 @@ begin
     dbms_output.put_line('total stock value: ' || v_total_value);
 end;
 
--- inventory value of supplier
+-- Inventory value of supplier
 create or replace function get_supplier_inventory_value (
     p_supplier_id in number
 ) return number is
     v_total_value number;
 begin
-    select (
-        select sum(stock_quantity * unit_price)
-        from parts
-        where supplier_id = p_supplier_id
-    )
+    select sum(stock_quantity * unit_price)
     into v_total_value
-    from dual;
+    from parts
+    where supplier_id = p_supplier_id;
 
     return nvl(v_total_value, 0);
 exception
@@ -261,8 +259,9 @@ exception
         return 0;
 end;
 
--- engine functions and procedurs
--- function for learning engine utilization rate
+-- Engine functions and procedurs
+
+-- Function for learning engine utilization rate
 create or replace function get_engine_type_utilization_rate(
     p_engine_type in varchar2,
     p_year_filter in number default null
@@ -321,7 +320,7 @@ select  c.car_id, c.model_name, e.engine_type, get_engine_type_utilization_rate(
 from cars c join engine e on c.engine_id = e.engine_id;
 
 
--- learning average cost of cars based on their fuel type
+-- Learning average cost of cars based on their fuel type
 create or replace function get_average_cost_by_fuel_type(
     p_fuel_type engine.fuel_type%type
 )
@@ -343,7 +342,7 @@ end;
 select get_average_cost_by_fuel_type('diesel') from dual;
 
 
--- procedure for reporting engine usage
+-- Procedure for reporting engine usage
 create or replace procedure report_engine_usage
 is
     cursor cur_engine_usage is
@@ -376,7 +375,7 @@ begin
 end;
 
 
--- assembly lines functions and procedurs
+-- Assembly lines functions and procedurs
 create or replace procedure assign_employee_to_line (
     p_employee_id       in number,
     p_assembly_line_id  in number
@@ -408,24 +407,40 @@ begin
 end;
 
 
-create or replace function get_daily_car_production_capacity (
-    p_line_id in number default null
+create or replace function get_car_production_capacity (
+    p_line_id in number default null,
+    p_period  in varchar2 default 'day'
 ) return number is
-    v_total_capacity number;
+    v_daily_capacity number;
+    v_final_capacity number;
 begin
+
     if p_line_id is not null then
-        select max_output_per_day into v_total_capacity
+        select max_output_per_day into v_daily_capacity
         from assembly_lines
         where assembly_line_id = p_line_id;
     else
-        select sum(max_output_per_day) into v_total_capacity
+        select sum(max_output_per_day) into v_daily_capacity
         from assembly_lines;
     end if;
 
-    return v_total_capacity;
+   
+    case lower(p_period)
+        when 'day' then
+            v_final_capacity := v_daily_capacity;
+        when 'month' then
+            v_final_capacity := v_daily_capacity * 30;
+        when 'year' then
+            v_final_capacity := v_daily_capacity * 365;
+        else
+            raise_application_error(-20003, 'Invalid period. Use day, month, or year.');
+    end case;
+
+    return v_final_capacity;
 end;
 
 
+-- Reports current production status
 create or replace procedure report_line_production_status (
     p_line_id in number
 ) as
@@ -442,9 +457,9 @@ end;
 
 
 
--- employees functions and procedurs
+-- Employees functions and procedurs
 
--- adding new employee without duplication
+-- Adding new employee without duplication
 create or replace procedure add_employee(
     p_name in varchar2,
     p_position in varchar2,
@@ -454,7 +469,6 @@ create or replace procedure add_employee(
 ) as
     v_count number;
 begin
-    -- Check if the employee already exists (based on name and assembly_line_id)
     select count(*) into v_count
     from employees
     where name = p_name
@@ -474,7 +488,7 @@ exception
 end;
 
 
-
+-- Displays average salary based position
 create or replace function get_avg_salary_by_position(
     p_position in varchar2
 ) return number as
@@ -491,7 +505,7 @@ exception
 end get_avg_salary_by_position;
 
 
-
+-- Displays highest paid employee in order to find maximum salary limit
 create or replace function get_highest_paid_employee(
     p_position in varchar2
 ) return varchar2 as
@@ -517,7 +531,9 @@ end get_highest_paid_employee;
 select get_highest_paid_employee('engineer') from dual;
 
 
--- cars functions and procedurs
+-- Cars functions and procedurs
+
+-- Calculates total producion amount of car in a year
 create or replace function get_completed_car_count_by_year(p_year number)
 return number is
     v_count number;
@@ -531,6 +547,7 @@ begin
 end;
 
 
+-- Displays the latest model of given car
 create or replace function get_latest_model_by_line(p_line_id number)
 return varchar2 is
     v_model_name varchar2(100);
@@ -550,6 +567,7 @@ begin
 end;
 
 
+-- Updates car status based on its current appearance
 create or replace procedure updatecarstatus(
     p_car_id      number,
     p_new_status  varchar2
